@@ -2,21 +2,30 @@
 
 A cloud-native annotation workflow system for sentence-level media bias detection with dual-annotator verification.
 
-## 🚀 Deploy to GitHub Pages (Auto-Deploy on Push!)
+## 🚀 Deploy to Vercel (Super Easy!)
 
-**This app automatically deploys to GitHub Pages** when you push to your repository. See **[GITHUB_PAGES_DEPLOY.md](GITHUB_PAGES_DEPLOY.md)** for the complete 3-minute setup guide.
+**Just push your code and Vercel does everything else.** No complex config, no build errors.
 
-### Quick Start:
+### Quick Start (3 minutes total):
 
-1. **Set up Supabase** (2 min) - Create project, run migration SQL
-2. **Add GitHub Secrets** (30 sec) - Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-3. **Enable GitHub Pages** (30 sec) - Set source to "GitHub Actions"
-4. **Push to GitHub** - Automatic deployment!
-5. **Create Users** (2 min) - Add users in Supabase Auth + profiles table
+1. **Set up Supabase** (2 min)
+   - Go to [supabase.com](https://supabase.com) → Create new project
+   - SQL Editor → Paste & run `supabase/migrations/20250101000000_initial_schema.sql`
+   - Copy your Project URL and anon key from Settings → API
 
-Your app will be live at: `https://YOUR_USERNAME.github.io/unspun-flow/`
+2. **Deploy to Vercel** (30 sec)
+   - Go to [vercel.com](https://vercel.com) → Import Git Repository
+   - Select your repo → Vercel auto-detects Next.js
+   - Add environment variables:
+     - `NEXT_PUBLIC_SUPABASE_URL` = your Supabase URL
+     - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = your anon key
+   - Click **Deploy** → Done!
 
-**Alternative:** You can also deploy to Vercel - see [DEPLOY.md](DEPLOY.md)
+3. **Create Users** (30 sec)
+   - Supabase → Auth → Add user
+   - Table Editor → profiles → Insert row with user ID and role
+
+**Live in 3 minutes!** See [DEPLOY.md](DEPLOY.md) for detailed instructions.
 
 ## 📊 Tech Stack
 

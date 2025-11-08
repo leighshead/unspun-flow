@@ -1,15 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
 import AnnotationInterface from './AnnotationInterface'
 
-export default function AnnotatePage() {
+export default function AnnotatePage({ params }: { params: { id: string } }) {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const articleId = searchParams.get('id')
   const supabase = createClient()
 
   const [profile, setProfile] = useState<any>(null)
@@ -20,11 +18,6 @@ export default function AnnotatePage() {
 
   useEffect(() => {
     async function loadData() {
-      if (!articleId) {
-        router.push('/annotator/dashboard')
-        return
-      }
-
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
@@ -48,7 +41,7 @@ export default function AnnotatePage() {
       const { data: articleData } = await supabase
         .from('articles')
         .select('*')
-        .eq('id', articleId)
+        .eq('id', params.id)
         .single()
 
       if (!articleData) {
@@ -62,7 +55,7 @@ export default function AnnotatePage() {
       const { data: sentencesData } = await supabase
         .from('sentences')
         .select('*')
-        .eq('article_id', articleId)
+        .eq('article_id', params.id)
         .order('position', { ascending: true })
 
       setSentences(sentencesData || [])
@@ -80,7 +73,7 @@ export default function AnnotatePage() {
     }
 
     loadData()
-  }, [articleId, router, supabase])
+  }, [params.id, router, supabase])
 
   if (loading || !profile || !article) {
     return (
