@@ -150,7 +150,7 @@ export default function AnnotatorDashboard() {
                     </div>
 
                     <Link
-                      href={`/annotator/annotate/${assignment.article_id}`}
+                      href={`/annotator/annotate/article?id=${assignment.article_id}`}
                       className={`btn ${isCompleted ? 'btn-secondary' : 'btn-primary'} w-full flex items-center justify-center gap-2`}
                     >
                       <PlayCircle size={20} />
