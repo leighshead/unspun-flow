@@ -1,25 +1,44 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+'use client'
 
-export default async function Home() {
-  const supabase = await createClient()
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
-  const { data: { user } } = await supabase.auth.getUser()
+export default function Home() {
+  const router = useRouter()
+  const supabase = createClient()
 
-  if (!user) {
-    redirect('/login')
-  }
+  useEffect(() => {
+    async function checkAuth() {
+      const { data: { user } } = await supabase.auth.getUser()
 
-  // Get user role
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+      if (!user) {
+        router.push('/login')
+        return
+      }
 
-  if (profile?.role === 'admin') {
-    redirect('/admin/dashboard')
-  } else {
-    redirect('/annotator/dashboard')
-  }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profile?.role === 'admin') {
+        router.push('/admin/dashboard')
+      } else {
+        router.push('/annotator/dashboard')
+      }
+    }
+
+    checkAuth()
+  }, [router, supabase])
+
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    </div>
+  )
 }

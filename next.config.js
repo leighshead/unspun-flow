@@ -1,10 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverActions: {
-      allowedOrigins: ['localhost:3000'],
-    },
+  output: 'export',
+  images: {
+    unoptimized: true,
   },
+  basePath: process.env.NODE_ENV === 'production' ? '/unspun-flow' : '',
+  trailingSlash: true,
 }
 
 module.exports = nextConfig

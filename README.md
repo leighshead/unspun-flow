@@ -2,57 +2,21 @@
 
 A cloud-native annotation workflow system for sentence-level media bias detection with dual-annotator verification.
 
-## 🚀 Deploy to Production (5 minutes)
+## 🚀 Deploy to GitHub Pages (Auto-Deploy on Push!)
 
-### Step 1: Set up Supabase
+**This app automatically deploys to GitHub Pages** when you push to your repository. See **[GITHUB_PAGES_DEPLOY.md](GITHUB_PAGES_DEPLOY.md)** for the complete 3-minute setup guide.
 
-1. Go to [supabase.com](https://supabase.com) and create a new project
-2. Wait for the database to be ready
-3. Go to **SQL Editor** and run the migration:
-   - Copy the contents of `supabase/migrations/20250101000000_initial_schema.sql`
-   - Paste and execute in SQL Editor
-4. Go to **Project Settings** → **API** and copy:
-   - Project URL (`NEXT_PUBLIC_SUPABASE_URL`)
-   - `anon` public key (`NEXT_PUBLIC_SUPABASE_ANON_KEY`)
-   - `service_role` secret key (`SUPABASE_SERVICE_ROLE_KEY`)
+### Quick Start:
 
-### Step 2: Deploy to Vercel
+1. **Set up Supabase** (2 min) - Create project, run migration SQL
+2. **Add GitHub Secrets** (30 sec) - Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+3. **Enable GitHub Pages** (30 sec) - Set source to "GitHub Actions"
+4. **Push to GitHub** - Automatic deployment!
+5. **Create Users** (2 min) - Add users in Supabase Auth + profiles table
 
-1. Push your code to GitHub
-2. Go to [vercel.com](https://vercel.com)
-3. Click "Import Project" and select your repository
-4. Vercel will auto-detect Next.js
-5. Add Environment Variables:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
-   ```
-6. Click **Deploy**
-7. Your app will be live in ~2 minutes!
+Your app will be live at: `https://YOUR_USERNAME.github.io/unspun-flow/`
 
-### Step 3: Create Users
-
-1. In Supabase dashboard, go to **Authentication** → **Users**
-2. Click **Add user** → **Create new user**
-3. Add email and password (e.g., `admin@test.com` / `password123`)
-4. Copy the user's UUID
-5. Go to **Table Editor** → **profiles** → **Insert row**:
-   ```
-   id: [paste UUID]
-   name: Admin User
-   role: admin
-   status: active
-   ```
-6. Repeat for annotators (with `role: annotator`)
-
-### Step 4: Test the App
-
-1. Visit your Vercel URL
-2. Login with the credentials you created
-3. Admins will see the admin dashboard
-4. Annotators will see their assignments
+**Alternative:** You can also deploy to Vercel - see [DEPLOY.md](DEPLOY.md)
 
 ## 📊 Tech Stack
 

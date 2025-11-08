@@ -1,44 +1,90 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
 import AnnotationInterface from './AnnotationInterface'
 
-export default async function AnnotatePage({ params }: { params: { id: string } }) {
-  const supabase = await createClient()
+export default function AnnotatePage({ params }: { params: { id: string } }) {
+  const router = useRouter()
+  const supabase = createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const [profile, setProfile] = useState<any>(null)
+  const [article, setArticle] = useState<any>(null)
+  const [sentences, setSentences] = useState<any[]>([])
+  const [existingAnnotations, setExistingAnnotations] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  useEffect(() => {
+    async function loadData() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
 
-  if (!profile) redirect('/login')
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
 
-  // Get article
-  const { data: article } = await supabase
-    .from('articles')
-    .select('*')
-    .eq('id', params.id)
-    .single()
+      if (!profileData) {
+        router.push('/login')
+        return
+      }
 
-  if (!article) redirect('/annotator/dashboard')
+      setProfile(profileData)
 
-  // Get sentences
-  const { data: sentences } = await supabase
-    .from('sentences')
-    .select('*')
-    .eq('article_id', params.id)
-    .order('position', { ascending: true })
+      // Get article
+      const { data: articleData } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('id', params.id)
+        .single()
 
-  // Get existing annotations
-  const { data: existingAnnotations } = await supabase
-    .from('annotations')
-    .select('*')
-    .eq('annotator_id', user.id)
-    .in('sentence_id', (sentences || []).map((s: any) => s.id))
+      if (!articleData) {
+        router.push('/annotator/dashboard')
+        return
+      }
+
+      setArticle(articleData)
+
+      // Get sentences
+      const { data: sentencesData } = await supabase
+        .from('sentences')
+        .select('*')
+        .eq('article_id', params.id)
+        .order('position', { ascending: true })
+
+      setSentences(sentencesData || [])
+
+      // Get existing annotations
+      const sentenceIds = (sentencesData || []).map((s: any) => s.id)
+      const { data: annotationsData } = await supabase
+        .from('annotations')
+        .select('*')
+        .eq('annotator_id', user.id)
+        .in('sentence_id', sentenceIds)
+
+      setExistingAnnotations(annotationsData || [])
+      setLoading(false)
+    }
+
+    loadData()
+  }, [params.id, router, supabase])
+
+  if (loading || !profile || !article) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -46,9 +92,9 @@ export default async function AnnotatePage({ params }: { params: { id: string } 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AnnotationInterface
           article={article}
-          sentences={sentences || []}
-          existingAnnotations={existingAnnotations || []}
-          userId={user.id}
+          sentences={sentences}
+          existingAnnotations={existingAnnotations}
+          userId={profile.id}
         />
       </main>
     </div>

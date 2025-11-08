@@ -1,44 +1,100 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
 import StatusBadge from '@/components/StatusBadge'
 import CreateArticleButton from './CreateArticleButton'
 import { FileText } from 'lucide-react'
 
-export default async function AdminDashboard() {
-  const supabase = await createClient()
+export default function AdminDashboard() {
+  const router = useRouter()
+  const supabase = createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const [profile, setProfile] = useState<any>(null)
+  const [articles, setArticles] = useState<any[]>([])
+  const [stats, setStats] = useState({
+    queued: 0,
+    in_progress: 0,
+    completed: 0,
+    ready_to_publish: 0,
+    needs_discussion: 0,
+  })
+  const [loading, setLoading] = useState(true)
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  useEffect(() => {
+    async function loadData() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
 
-  if (profile?.role !== 'admin') redirect('/annotator/dashboard')
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
 
-  // Get articles with sentence counts
-  const { data: articles } = await supabase
-    .from('articles')
-    .select(`
-      *,
-      sentences(count)
-    `)
-    .order('created_at', { ascending: false })
+      if (profileData?.role !== 'admin') {
+        router.push('/annotator/dashboard')
+        return
+      }
 
-  // Get stats
-  const { data: statsData } = await supabase
-    .from('articles')
-    .select('status')
+      setProfile(profileData)
 
-  const stats = {
-    queued: statsData?.filter(a => a.status === 'queued').length || 0,
-    in_progress: statsData?.filter(a => a.status === 'in_progress' || a.status === 'assigned').length || 0,
-    completed: statsData?.filter(a => a.status === 'completed').length || 0,
-    ready_to_publish: statsData?.filter(a => a.status === 'ready_to_publish').length || 0,
-    needs_discussion: statsData?.filter(a => a.status === 'needs_review').length || 0,
+      // Get articles with sentence counts
+      const { data: articlesData } = await supabase
+        .from('articles')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (articlesData) {
+        // Get sentence counts for each article
+        const articlesWithCounts = await Promise.all(
+          articlesData.map(async (article) => {
+            const { count } = await supabase
+              .from('sentences')
+              .select('*', { count: 'exact', head: true })
+              .eq('article_id', article.id)
+
+            return { ...article, sentence_count: count || 0 }
+          })
+        )
+        setArticles(articlesWithCounts)
+      }
+
+      // Get stats
+      const { data: statsData } = await supabase
+        .from('articles')
+        .select('status')
+
+      if (statsData) {
+        setStats({
+          queued: statsData.filter(a => a.status === 'queued').length,
+          in_progress: statsData.filter(a => a.status === 'in_progress' || a.status === 'assigned').length,
+          completed: statsData.filter(a => a.status === 'completed').length,
+          ready_to_publish: statsData.filter(a => a.status === 'ready_to_publish').length,
+          needs_discussion: statsData.filter(a => a.status === 'needs_review').length,
+        })
+      }
+
+      setLoading(false)
+    }
+
+    loadData()
+  }, [router, supabase])
+
+  if (loading || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -64,7 +120,7 @@ export default async function AdminDashboard() {
           <div className="card">
             <h2 className="text-xl font-semibold mb-4">Articles</h2>
 
-            {!articles || articles.length === 0 ? (
+            {articles.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <FileText size={48} className="mx-auto mb-2 opacity-50" />
                 <p>No articles yet. Add your first article to get started.</p>
@@ -92,7 +148,7 @@ export default async function AdminDashboard() {
                         <td className="px-4 py-3">
                           <StatusBadge status={article.status} />
                         </td>
-                        <td className="px-4 py-3">{article.sentences?.[0]?.count || 0}</td>
+                        <td className="px-4 py-3">{article.sentence_count}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -1,60 +1,100 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
 import StatusBadge from '@/components/StatusBadge'
 import Link from 'next/link'
 import { FileText, PlayCircle } from 'lucide-react'
 
-export default async function AnnotatorDashboard() {
-  const supabase = await createClient()
+export default function AnnotatorDashboard() {
+  const router = useRouter()
+  const supabase = createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const [profile, setProfile] = useState<any>(null)
+  const [assignmentsWithProgress, setAssignmentsWithProgress] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile) redirect('/login')
-
-  // Get assignments with article data
-  const { data: assignments } = await supabase
-    .from('assignments')
-    .select(`
-      *,
-      articles (
-        id,
-        title,
-        source,
-        status
-      )
-    `)
-    .eq('annotator_id', user.id)
-    .order('assigned_date', { ascending: false })
-
-  // Get annotation counts for each assignment
-  const assignmentsWithProgress = await Promise.all(
-    (assignments || []).map(async (assignment: any) => {
-      const { data: sentences } = await supabase
-        .from('sentences')
-        .select('id')
-        .eq('article_id', assignment.article_id)
-
-      const { data: annotations } = await supabase
-        .from('annotations')
-        .select('id')
-        .eq('annotator_id', user.id)
-        .in('sentence_id', (sentences || []).map((s: any) => s.id))
-
-      return {
-        ...assignment,
-        total_sentences: sentences?.length || 0,
-        completed_sentences: annotations?.length || 0,
+  useEffect(() => {
+    async function loadData() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
       }
-    })
-  )
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (!profileData) {
+        router.push('/login')
+        return
+      }
+
+      setProfile(profileData)
+
+      // Get assignments
+      const { data: assignments } = await supabase
+        .from('assignments')
+        .select(`
+          *,
+          articles (
+            id,
+            title,
+            source,
+            status
+          )
+        `)
+        .eq('annotator_id', user.id)
+        .order('assigned_date', { ascending: false })
+
+      // Get progress for each assignment
+      if (assignments) {
+        const withProgress = await Promise.all(
+          assignments.map(async (assignment: any) => {
+            const { data: sentences } = await supabase
+              .from('sentences')
+              .select('id')
+              .eq('article_id', assignment.article_id)
+
+            const sentenceIds = (sentences || []).map((s: any) => s.id)
+
+            const { data: annotations } = await supabase
+              .from('annotations')
+              .select('id')
+              .eq('annotator_id', user.id)
+              .in('sentence_id', sentenceIds)
+
+            return {
+              ...assignment,
+              total_sentences: sentences?.length || 0,
+              completed_sentences: annotations?.length || 0,
+            }
+          })
+        )
+        setAssignmentsWithProgress(withProgress)
+      }
+
+      setLoading(false)
+    }
+
+    loadData()
+  }, [router, supabase])
+
+  if (loading || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -63,7 +103,7 @@ export default async function AnnotatorDashboard() {
         <div className="space-y-6">
           <h1 className="text-3xl font-bold">My Assignments</h1>
 
-          {!assignmentsWithProgress || assignmentsWithProgress.length === 0 ? (
+          {assignmentsWithProgress.length === 0 ? (
             <div className="card text-center py-12">
               <FileText size={48} className="mx-auto mb-4 text-gray-400" />
               <h2 className="text-xl font-semibold mb-2">No Assignments Yet</h2>
